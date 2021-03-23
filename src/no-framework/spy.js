@@ -1,18 +1,35 @@
-// const { TestScheduler } = require("jest");
-// const thumbWar = require("../thumb-war");
-// const utils = require("../utils");
+const assert = require("assert");
+const thumbWar = require("../thumb-war");
+const utils = require("../utils");
 
-// test("returns winner", () => {
-//   const originalGetWinner = utils.getWinner;
-//   //mock function
-//   utils.getWinner = jest.fn((p1, p2) => p1);
+function fn(impl = () => {}) {
+  const mockFn = (...args) => {
+    mockFn.mock.calls.push(args);
+    return impl(...args);
+  };
+  mockFn.mock = { calls: [] };
+  mockFn.mockImplementation = (newImpl) => (impl = newImpl);
+  return mockFn;
+}
 
-//   const winner = thumbWar("Kent C. Dodds", "Ken Wheeler");
-//   expect(winner).toBe("Kent C. Dodds");
-//   expect(utils.getWinner.mock.calls).toEqual([
-//     ["Kent C. Dodds", "Ken Wheeler"],
-//     ["Kent C. Dodds", "Ken Wheeler"],
-//   ]);
+function spyOn(obj, prop) {
+  const originalValue = obj[prop];
+  obj[prop] = fn();
+  obj[prop].mockRestore = () => (obj[prop] = originalValue);
+}
 
-//   utils.getWinner = originalGetWinner;
-// });
+// const originalGetWinner = utils.getWinner;
+spyOn(utils, "getWinner");
+utils.getWinner.mockImplementation((p1, p2) => p1);
+// utils.getWinner = fn((p1, p2) => p1);
+
+const winner = thumbWar("Kent C. Dodds", "Ken Wheeler");
+assert.strictEqual(winner, "Kent C. Dodds");
+assert.deepStrictEqual(utils.getWinner.mock.calls, [
+  ["Kent C. Dodds", "Ken Wheeler"],
+  ["Kent C. Dodds", "Ken Wheeler"],
+]);
+
+// cleanup
+utils.getWinner.mockRestore();
+// utils.getWinner = originalGetWinner;
